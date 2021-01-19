@@ -1,0 +1,5 @@
+c=[[1] , -5 , [-2, 3] , 4];
+b = 3;
+d = c[2];
+while b > "ali" do a = 0 end;
+return d
