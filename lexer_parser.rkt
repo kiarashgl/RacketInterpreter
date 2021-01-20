@@ -1,5 +1,3 @@
-#lang racket
-
 (require parser-tools/lex
          (prefix-in : parser-tools/lex-sre)
          (lib "eopl.ss" "eopl")
@@ -168,6 +166,6 @@
 
 
 ;test
-(let ([inp (open-input-file "test1.txt")]) (begin
+(let ([inp (open-input-file "test0.txt")]) (begin
                                              (port-count-lines! inp)
                                              (scan-and-parse inp)))
