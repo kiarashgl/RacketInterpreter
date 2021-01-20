@@ -137,11 +137,13 @@
 	(string-exp (str) (string-val str))
 	(list-exp (mylist) (value-of-list mylist env))
 	(var-list-exp (var my-list-member)
-		(let ([list-variable (expval->list (apply-env env var))])
-		(if (not (list? list-variable))
-			(error "value-of-cexp: Non-array object could not be subscripted")
-			(value-of-list-member list-variable my-list-member env))
-		))
+		(let ([list-expval (apply-env env var)])
+		(cases expval list-expval
+			(list-val (ls) (value-of-list-member ls my-list-member env))
+			(else (error "value-of-cexp: Non-array object could not be subscripted"))
+		)
+		)
+	)
 )
 )
 

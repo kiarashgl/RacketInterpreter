@@ -8,6 +8,6 @@ z = 1;
 while a != 1024 do
 	z = z * 3;
 	a = a * 2;
-	if z == 81 then return 123 else qqq = 1 end
+	if z == 82 then return 123 else qqq = 1 end
 end;
 return z

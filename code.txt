@@ -6,7 +6,7 @@ aa = 2 * [1, 2, 3, 3, 3, b];
 z = [true, true, false, true, false];
 z = false + z;
 a = 5;
-q = ["ali", "reza"];
+q = ["ab", "cd"];
 while a > 0 do
 	a = a - 1;
 	q = q + "a"
