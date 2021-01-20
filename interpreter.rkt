@@ -14,25 +14,25 @@
 (define (expval->num exp)
 (cases expval exp
 	(num-val (num) num)
-	(else (error "Cannot cast exp-val to num"))
+	(else (error "expval->num: Cannot cast exp-val to num"))
 ))
 
 (define (expval->bool exp)
 (cases expval exp
 	(bool-val (bool) bool)
-	(else (error "Cannot cast exp-val to bool"))
+	(else (error "expval->bool: Cannot cast exp-val to bool"))
 ))
 
 (define (expval->string exp)
 (cases expval exp
 	(string-val (str) str)
-	(else (error "Cannot cast exp-val to string"))
+	(else (error "expval->string: Cannot cast exp-val to string"))
 ))
 
 (define (expval->list exp)
 (cases expval exp
 	(list-val (ls) ls)
-	(else (error "Cannot cast exp-val to list"))
+	(else (error "expval->list: Cannot cast exp-val to list"))
 ))
 
 (define (value->expval val)
@@ -42,7 +42,7 @@
 	[(list? val) (list-val val)]
 	[(string? val) (string-val val)]
 	[(null? val) (null-val)]
-	[else (error "Cannot cast to exp-val")]
+	[else (error "value->expval: Cannot cast to exp-val")]
 )
 )
 
@@ -60,7 +60,7 @@
 (define (command-val->expval cmdval)
 (cases expval cmdval
 	(command-val (exp env has-returned) exp)
-	(else (error "Cannot cast command-val to expval"))
+	(else (error "command-val->expval: Cannot cast command-val to expval"))
 ))
 
 (define-datatype environment environment?
@@ -75,7 +75,7 @@
 (define (apply-env env search-var)
 (cases environment env
 	(empty-env ()
-		(error "Variable is not defined in environment")
+		(error "apply-env: Variable is not defined in environment")
 	)
 	(extend-env (saved-var saved-val saved-env)
 		(if (eqv? saved-var search-var)
@@ -105,7 +105,7 @@
 						(value-of-keyword keyword1 cmd-env)
 					)
 				)
-				(else (error "Invalid Command"))
+				(else (error "value-of-command: Invalid Command"))
 			)
 		)
 	)
@@ -142,7 +142,7 @@
 				(let ([done-cmd (value-of-command cmd env)])
 					(cases expval done-cmd
 						(command-val (myexpval new-env has-returned) (if has-returned done-cmd (value-of-while my-while-stmnt new-env)))
-						(else (error "Invalid Command"))
+						(else (error "value-of-while: Invalid Command"))
 					)
 				)
 				(command-val (null-val) env #f)
@@ -166,22 +166,138 @@
 	(return-stmnt (myexp) (command-val (value-of-exp myexp env) env #t))
 )
 )
+  
+(define (greater-expression? value1 value2)
+	(cond
+		[(and (number? value1) (number? value2)) (> value1 value2)]
+		[(and (number? value1) (list? value2)) 
+			(cond
+				[(null? value2) #t]
+				[(not (number? (car value2))) (error "greater-expression?: Could not compare number with non-numerical list")]
+				[else (and (> value1 (car value2)) (greater-expression? value1 (cdr value2)))]
+			)]
+		[(and (list? value1) (number? value2)) 
+			(cond
+				[(null? value1) #t]
+				[(not (number? (car value1))) (error "greater-expression?: Could not compare number with non-numerical list")]
+				[else (and (> (car value1) value2) (greater-expression? (cdr value1) value2))]
+			)]
+		[(and (string? value1) (string? value2)) (string>? value1 value2)]
+		[(and (string? value1) (list? value2)) 
+			(cond
+				[(null? value2) #t]
+				[(not (string? (car value2))) (error "greater-expression?: Could not compare string with non-string list")]
+				[else (and (string>? value1 (car value2)) (greater-expression? value1 (cdr value2)))]
+			)]
+		[(and (list? value1) (string? value2)) 
+			(cond
+				[(null? value1) #t]
+				[(not (string? (car value1))) (error "greater-expression?: Could not compare string with non-string list")]
+				[else (and (string>? (car value1) value2) (greater-expression? (cdr value1) value2))]
+			)]
+		[else (error "greater-expression?: Invalid operands in comparison")]
+	)
+)
+
+(define (less-expression? value1 value2)
+	(cond
+		[(and (number? value1) (number? value2)) (< value1 value2)]
+		[(and (number? value1) (list? value2)) 
+			(cond
+				[(null? value2) #t]
+				[(not (number? (car value2))) (error "less-expression?: Could not compare number with non-numerical list")]
+				[else (and (< value1 (car value2)) (less-expression? value1 (cdr value2)))]
+			)]
+		[(and (list? value1) (number? value2)) 
+			(cond
+				[(null? value1) #t]
+				[(not (number? (car value1))) (error "less-expression?: Could not compare number with non-numerical list")]
+				[else (and (< (car value1) value2) (less-expression? (cdr value1) value2))]
+			)]
+		[(and (string? value1) (string? value2)) (string<? value1 value2)]
+		[(and (string? value1) (list? value2)) 
+			(cond
+				[(null? value2) #t]
+				[(not (string? (car value2))) (error "less-expression?: Could not compare string with non-string list")]
+				[else (and (string<? value1 (car value2)) (less-expression? value1 (cdr value2)))]
+			)]
+		[(and (list? value1) (string? value2)) 
+			(cond
+				[(null? value1) #t]
+				[(not (string? (car value1))) (error "less-expression?: Could not compare string with non-string list")]
+				[else (and (string<? (car value1) value2) (less-expression? (cdr value1) value2))]
+			)]
+		[else (error "less-expression?: Invalid operands in comparison")]
+	)
+)
 
 (define (value-of-exp myexp env)
 (cases exp myexp
 	(a-exp (myaexp) (value-of-aexp myaexp env))
+	(greater-exp (aexp1 aexp2) (bool-val (greater-expression? (expval->value (value-of-aexp aexp1 env)) (expval->value (value-of-aexp aexp2 env)))))
+	(less-exp (aexp1 aexp2) (bool-val (less-expression? (expval->value (value-of-aexp aexp1 env)) (expval->value (value-of-aexp aexp2 env)))))
 	(equal-exp (aexp1 aexp2) (bool-val (equal-expression? (expval->value (value-of-aexp aexp1 env)) (expval->value (value-of-aexp aexp2 env)))))
 	(notequal-exp (aexp1 aexp2)
 		(bool-val (not (equal-expression? (expval->value (value-of-aexp aexp1 env)) (expval->value (value-of-aexp aexp2 env))))))
-	
-	(else (error "Invalid Exp"))
+)
+)
+
+(define (subtract value1 value2)
+(cond
+	[(and (number? value1) (number? value2)) (- value1 value2)]
+	[(and (number? value1) (list? value2))
+		(cond
+			[(null? value2) value2]
+			[(not (number? (car value2))) (error "subtract: Could not subtract a non-numerical list by a number")]
+			[else (cons (- value1 (car value2)) (subtract value1 (cdr value2)))])]
+
+	[(and (list? value1) (number? value2))
+		(cond
+			[(null? value1) value1]
+			[(not (number? (car value1))) (error "subtract: Could not subtract a non-numerical list by a number")]
+			[else (cons (- (car value1) value2) (subtract (cdr value1) value2))])]
+	[else (error "subtract: Invalid operands in subtraction")]	
+)
+)
+
+(define (add value1 value2)
+(cond
+	[(and (number? value1) (number? value2)) (+ value1 value2)]
+	[(and (number? value1) (list? value2))
+		(cond
+			[(null? value2) value2]
+			[(not (number? (car value2))) (error "add: Could not add a non-numerical list by a number")]
+			[else (cons (+ value1 (car value2)) (add value1 (cdr value2)))])]
+	[(and (list? value1) (number? value2)) (add value2 value1)]
+	[(and (boolean? value1) (boolean? value2)) (or value1 value2)]
+	[(and (boolean? value1) (list? value2))
+		(cond
+			[(null? value2) value2]
+			[(not (boolean? (car value2))) (error "add: Could not or a non-boolean list by a boolean")]
+			[else (cons (or value1 (car value2)) (add value1 (cdr value2)))])]
+	[(and (list? value1) (boolean? value2)) (add value2 value1)]
+	[(and (list? value1) (list? value2)) (append value1 value2)]
+	[(and (string? value1) (string? value2)) (string-append value1 value2)]
+
+	[(and (string? value1) (list? value2))
+		(cond
+			[(null? value2) value2]
+			[(not (string? (car value2))) (error "add: Could not append a string to a non-string list")]
+			[else (cons (string-append value1 (car value2)) (add value1 (cdr value2)))])]
+	[(and (list? value1) (string? value2))
+		(cond
+			[(null? value1) value1]
+			[(not (string? (car value1))) (error "add: Could not append a string to a non-string list")]
+			[else (cons (string-append (car value1) value2) (add (cdr value1) value2))])]
+	[else (error "add: Invalid operands in addition")]	
 )
 )
 
 (define (value-of-aexp myaexp env)
 (cases aexp myaexp
 	(b-exp (mybexp) (value-of-bexp mybexp env))
-	(else (error "Invalid Aexp"))
+	(b-minus-a (bexp1 aexp1) (value->expval (subtract (expval->value (value-of-bexp bexp1 env)) (expval->value (value-of-aexp aexp1 env)))))
+	(b-plus-a (bexp1 aexp1) (value->expval (add (expval->value (value-of-bexp bexp1 env)) (expval->value (value-of-aexp aexp1 env)))))
 )
 )
 
@@ -191,17 +307,17 @@
 	[(and (number? value1) (list? value2))
 		(cond
 			[(null? value2) value2]
-			[(not (number? (car value2))) (error "Could not multiply a non-numerical list by a number")]
+			[(not (number? (car value2))) (error "mult: Could not multiply a non-numerical list by a number")]
 			[else (cons (* value1 (car value2)) (mult value1 (cdr value2)))])]
 	[(and (list? value1) (number? value2)) (mult value2 value1)]
 	[(and (boolean? value1) (boolean? value2)) (and value1 value2)]
 	[(and (boolean? value1) (list? value2))
 		(cond
 			[(null? value2) value2]
-			[(not (boolean? (car value2))) (error "Could not and a non-boolean list by a boolean")]
+			[(not (boolean? (car value2))) (error "mult: Could not and a non-boolean list by a boolean")]
 			[else (cons (and value1 (car value2)) (mult value1 (cdr value2)))])]
 	[(and (list? value1) (boolean? value2)) (mult value2 value1)]
-	[else (error "Invalid operands in multiplication")]	
+	[else (error "mult: Invalid operands in multiplication")]	
 )
 )
 
@@ -211,13 +327,13 @@
 	[(and (number? value1) (list? value2))
 		(cond
 			[(null? value2) value2]
-			[(not (number? (car value2))) (error "Could not multiply a non-numerical list by a number")]
+			[(not (number? (car value2))) (error "div: Could not multiply a non-numerical list by a number")]
 			[else (cons (/ value1 (car value2)) (div value1 (cdr value2)))])]
 	[(and (list? value1) (number? value2)) (cond
 			[(null? value1) value1]
-			[(not (number? (car value1))) (error "Could not multiply a non-numerical list by a number")]
+			[(not (number? (car value1))) (error "div: Could not multiply a non-numerical list by a number")]
 			[else (cons (/ (car value1) value2) (div (cdr value1) value2))])]
-	[else (error "Invalid operands in division")]	
+	[else (error "div: Invalid operands in division")]	
 )
 )
 
@@ -234,7 +350,7 @@
 	[(number? value) (- value)]
 	[(boolean? value) (not value)]
 	[(list? value) (if (null? value) value (cons (negate (car value)) (negate (cdr value))))]
-	[else (error "Invalid negate operation")]
+	[else (error "negate: Invalid negate operation")]
 )
 )
 
@@ -243,7 +359,7 @@
 	(num-val (num) (num-val (negate num)))
 	(bool-val (bool) (bool-val (negate bool)))
 	(list-val (ls) (list-val (negate ls)))
-	(else (error "Invalid negate operation"))
+	(else (error "negate-expval: Invalid negate operation"))
 )
 )
 
@@ -257,7 +373,12 @@
 	(bool-exp (bool) (bool-val bool))
 	(string-exp (str) (string-val str))
 	(list-exp (mylist) (value-of-list mylist env))
-	(var-list-exp (var my-list-member) (value-of-list-member (expval->list (apply-env env var)) my-list-member env))
+	(var-list-exp (var my-list-member)
+		(let ([list-variable (expval->list (apply-env env var))])
+		(if (not (list? list-variable))
+			(error "value-of-cexp: Non-array object could not be subscripted")
+			(value-of-list-member list-variable my-list-member env))
+		))
 )
 )
 
@@ -288,10 +409,10 @@
 )
 
 (define (get-subscript ls indexp)
-(if (not (list? ls)) (error "Non-array object could not be subscripted")
+(if (not (list? ls)) (error "get-subscript: Non-array object could not be subscripted")
 (let ([index-number (expval->value indexp)])
 	(if
-		(not (number? index-number)) (error "Index should be a number")
+		(not (number? index-number)) (error "get-subscript: Index should be a number")
 		(get-list-index ls index-number)
 	)
 )
@@ -307,30 +428,12 @@
 
 (define (get-list-index ls ind)
 (cond
-	[(null? ls) (error "Index is out of range")]
-	[(< ind 0) (error "Subscription index should not be negative.")]
+	[(null? ls) (error "get-list-index: Index is out of range")]
+	[(< ind 0) (error "get-list-index: Subscription index should not be negative.")]
 	[(= ind 0) (car ls)]
 	[else (get-list-index (cdr ls) (- ind 1))]
 )
 )
-; (define (compare-list-number? lst num)
-;   (if (empty? lst) #t                                                              
-;                 (let ([carr (car lst)][cdrr (cdr lst)])
-;                    (and (if (list? carr)  (error (string-append "Cannot compare " (get-Type (element-to-expval carr)) " with " (get-Type (element-to-expval num))))
-;                       (greater-expression? carr num))
-;                         (greater-expression? cdrr num))
-;                          )))
-
-  
-; (define greater-expression?
-;   (lambda (num1 num2)
-;    (cond
-;      [(and (number? num1) (number? num2)) (>  num1 num2)]
-;      [(and (string? num1) (string? num2)) (string>? num1 num2)]
-;      [(and (list? num1) (or (number? num2) (string? num2)))  (compare-list-number? num1 num2)]
-;      [(and (list? num2) (or (number? num1) (string? num1))) (compare-list-number? num2 num1)]
-;      [(error (string-append "Cannot compare " (get-Type (element-to-expval num1)) " with " (get-Type (element-to-expval num2))))]
-;      )))
      
      
-(evaluate "test0.txt")
+(evaluate "code.txt")

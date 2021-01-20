@@ -148,8 +148,3 @@
 
 (define scan-and-parse (lambda (input-file)
   (let ([file-lexer (lambda () (main-lexer input-file))]) (main-parser file-lexer))))
-
-;test
-(let ([inp (open-input-file "test0.txt")]) (begin
-                                             (port-count-lines! inp)
-                                             (scan-and-parse inp)))
