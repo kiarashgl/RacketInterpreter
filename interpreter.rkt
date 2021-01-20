@@ -141,6 +141,7 @@
 (define (value-of-exp myexp env)
 (cases exp myexp
 	(a-exp (myaexp) (value-of-aexp myaexp env))
+	(equal-exp (aexp1 aexp2) (bool-val (equal-expression? (expval->value (value-of-aexp aexp1 env)) (expval->value (value-of-aexp aexp2 env)))))
 	(else (error "Invalid Exp"))
 )
 )
