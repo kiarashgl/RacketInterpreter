@@ -245,5 +245,24 @@
 	[else (get-list-index (cdr ls) (- ind 1))]
 )
 )
+(define (compare-list-number? lst num)
+  (if (empty? lst) #t                                                              
+                (let ([carr (car lst)][cdrr (cdr lst)])
+                   (and (if (list? carr)  (error (string-append "Cannot compare " (get-Type (element-to-expval carr)) " with " (get-Type (element-to-expval num))))
+                      (greater-expression? carr num))
+                        (greater-expression? cdrr num))
+                         )))
 
+  
+(define greater-expression?
+  (lambda (num1 num2)
+   (cond
+     [(and (number? num1) (number? num2)) (>  num1 num2)]
+     [(and (string? num1) (string? num2)) (string>? num1 num2)]
+     [(and (list? num1) (or (number? num2) (string? num2)))  (compare-list-number? num1 num2)]
+     [(and (list? num2) (or (number? num1) (string? num1))) (compare-list-number? num2 num1)]
+     [(error (string-append "Cannot compare " (get-Type (element-to-expval num1)) " with " (get-Type (element-to-expval num2))))]
+     )))
+     
+     
 (evaluate "test0.txt")
