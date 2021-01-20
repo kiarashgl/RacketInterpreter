@@ -114,12 +114,41 @@
 
 (define (value-of-keyword kw env)
 (cases keyword kw
-	;(if-keyword (my-if-stmnt) (value-of-if my-if-stmnt env))
-	(assign-keyword (my-assign-statement) (value-of-assign my-assign-statement env))
-	;(while-keyword (my-while-statement) (value-of-while my-while-statement env))
-	(ret-keyword (my-ret-statement) (value-of-return my-ret-statement env))
-	(else (error "Invalid keyword"))
+	(if-keyword (my-if-stmnt) (value-of-if my-if-stmnt env))
+	(assign-keyword (my-assign-stmnt) (value-of-assign my-assign-stmnt env))
+	(while-keyword (my-while-stmnt) (value-of-while my-while-stmnt env))
+	(ret-keyword (my-ret-stmnt) (value-of-return my-ret-stmnt env))
+)
+)
 
+(define (value-of-if my-if-stmnt env)
+(cases if-statement my-if-stmnt
+	(if-stmnt (exp1 cmd1 cmd2)
+		(let ([exp-value (expval->value (value-of-exp exp1 env))])
+		(if exp-value
+			(value-of-command cmd1 env)
+			(value-of-command cmd2 env)
+		)
+		)
+	)
+)
+)
+
+(define (value-of-while my-while-stmnt env)
+(cases while-statement my-while-stmnt
+	(while-stmnt (exp1 cmd)
+		(let ([exp-value (expval->value (value-of-exp exp1 env))])
+			(if exp-value
+				(let ([done-cmd (value-of-command cmd env)])
+					(cases expval done-cmd
+						(command-val (myexpval new-env has-returned) (if has-returned done-cmd (value-of-while my-while-stmnt new-env)))
+						(else (error "Invalid Command"))
+					)
+				)
+				(command-val (null-val) env #f)
+			)
+		)
+	)
 )
 )
 
@@ -142,6 +171,9 @@
 (cases exp myexp
 	(a-exp (myaexp) (value-of-aexp myaexp env))
 	(equal-exp (aexp1 aexp2) (bool-val (equal-expression? (expval->value (value-of-aexp aexp1 env)) (expval->value (value-of-aexp aexp2 env)))))
+	(notequal-exp (aexp1 aexp2)
+		(bool-val (not (equal-expression? (expval->value (value-of-aexp aexp1 env)) (expval->value (value-of-aexp aexp2 env))))))
+	
 	(else (error "Invalid Exp"))
 )
 )
@@ -281,24 +313,24 @@
 	[else (get-list-index (cdr ls) (- ind 1))]
 )
 )
-(define (compare-list-number? lst num)
-  (if (empty? lst) #t                                                              
-                (let ([carr (car lst)][cdrr (cdr lst)])
-                   (and (if (list? carr)  (error (string-append "Cannot compare " (get-Type (element-to-expval carr)) " with " (get-Type (element-to-expval num))))
-                      (greater-expression? carr num))
-                        (greater-expression? cdrr num))
-                         )))
+; (define (compare-list-number? lst num)
+;   (if (empty? lst) #t                                                              
+;                 (let ([carr (car lst)][cdrr (cdr lst)])
+;                    (and (if (list? carr)  (error (string-append "Cannot compare " (get-Type (element-to-expval carr)) " with " (get-Type (element-to-expval num))))
+;                       (greater-expression? carr num))
+;                         (greater-expression? cdrr num))
+;                          )))
 
   
-(define greater-expression?
-  (lambda (num1 num2)
-   (cond
-     [(and (number? num1) (number? num2)) (>  num1 num2)]
-     [(and (string? num1) (string? num2)) (string>? num1 num2)]
-     [(and (list? num1) (or (number? num2) (string? num2)))  (compare-list-number? num1 num2)]
-     [(and (list? num2) (or (number? num1) (string? num1))) (compare-list-number? num2 num1)]
-     [(error (string-append "Cannot compare " (get-Type (element-to-expval num1)) " with " (get-Type (element-to-expval num2))))]
-     )))
+; (define greater-expression?
+;   (lambda (num1 num2)
+;    (cond
+;      [(and (number? num1) (number? num2)) (>  num1 num2)]
+;      [(and (string? num1) (string? num2)) (string>? num1 num2)]
+;      [(and (list? num1) (or (number? num2) (string? num2)))  (compare-list-number? num1 num2)]
+;      [(and (list? num2) (or (number? num1) (string? num1))) (compare-list-number? num2 num1)]
+;      [(error (string-append "Cannot compare " (get-Type (element-to-expval num1)) " with " (get-Type (element-to-expval num2))))]
+;      )))
      
      
 (evaluate "test0.txt")

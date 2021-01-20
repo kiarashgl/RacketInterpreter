@@ -1,5 +1,13 @@
 a = 2;
 b = 111;
-a = -3;
+a = 2;
+if a == 2 then b = 8 else b = 1 end;
 q = 2 / [1, 2, 3, 3, 3, b];
-return q
+a = 1;
+z = 1;
+while a != 1024 do
+	z = z * 3;
+	a = a * 2;
+	if z == 81 then return 123 else qqq = 1 end
+end;
+return z
