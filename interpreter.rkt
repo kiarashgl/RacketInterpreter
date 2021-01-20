@@ -153,10 +153,47 @@
 )
 )
 
+(define (mult value1 value2)
+(cond
+	[(and (number? value1) (number? value2)) (* value1 value2)]
+	[(and (number? value1) (list? value2))
+		(cond
+			[(null? value2) value2]
+			[(not (number? (car value2))) (error "Could not multiply a non-numerical list by a number")]
+			[else (cons (* value1 (car value2)) (mult value1 (cdr value2)))])]
+	[(and (list? value1) (number? value2)) (mult value2 value1)]
+	[(and (boolean? value1) (boolean? value2)) (and value1 value2)]
+	[(and (boolean? value1) (list? value2))
+		(cond
+			[(null? value2) value2]
+			[(not (boolean? (car value2))) (error "Could not and a non-boolean list by a boolean")]
+			[else (cons (and value1 (car value2)) (mult value1 (cdr value2)))])]
+	[(and (list? value1) (boolean? value2)) (mult value2 value1)]
+	[else (error "Invalid operands in multiplication")]	
+)
+)
+
+(define (div value1 value2)
+(cond
+	[(and (number? value1) (number? value2)) (/ value1 value2)]
+	[(and (number? value1) (list? value2))
+		(cond
+			[(null? value2) value2]
+			[(not (number? (car value2))) (error "Could not multiply a non-numerical list by a number")]
+			[else (cons (/ value1 (car value2)) (div value1 (cdr value2)))])]
+	[(and (list? value1) (number? value2)) (cond
+			[(null? value1) value1]
+			[(not (number? (car value1))) (error "Could not multiply a non-numerical list by a number")]
+			[else (cons (/ (car value1) value2) (div (cdr value1) value2))])]
+	[else (error "Invalid operands in division")]	
+)
+)
+
 (define (value-of-bexp mybexp env)
 (cases bexp mybexp
 	(c-exp (mycexp) (value-of-cexp mycexp env))
-	(else (error "Invalid Bexp"))
+	(c-times-b (cexp1 bexp1) (value->expval (mult (expval->value (value-of-cexp cexp1 env)) (expval->value (value-of-bexp bexp1 env)))))
+	(c-dividedby-b (cexp1 bexp1) (value->expval (div (expval->value (value-of-cexp cexp1 env)) (expval->value (value-of-bexp bexp1 env)))))
 )
 )
 
@@ -165,7 +202,7 @@
 	[(number? value) (- value)]
 	[(boolean? value) (not value)]
 	[(list? value) (if (null? value) value (cons (negate (car value)) (negate (cdr value))))]
-	[else (error "Invalid negate operation2")]
+	[else (error "Invalid negate operation")]
 )
 )
 
@@ -174,7 +211,7 @@
 	(num-val (num) (num-val (negate num)))
 	(bool-val (bool) (bool-val (negate bool)))
 	(list-val (ls) (list-val (negate ls)))
-	(else (error "Invalid negate operation1"))
+	(else (error "Invalid negate operation"))
 )
 )
 
@@ -189,7 +226,6 @@
 	(string-exp (str) (string-val str))
 	(list-exp (mylist) (value-of-list mylist env))
 	(var-list-exp (var my-list-member) (value-of-list-member (expval->list (apply-env env var)) my-list-member env))
-	(else (error "Invalid Cexp"))
 )
 )
 
