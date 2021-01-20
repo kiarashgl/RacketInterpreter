@@ -144,4 +144,14 @@
 )
 )
 
+(define equal-expression?
+   (lambda (num1 num2)
+     (cond
+     [(and (null? num1) (null? num2)) #t]
+     [(and (number? num1) (number? num2)) (equal? num1 num2)]
+     [(and (string? num1) (string? num2)) (equal? num1 num2)]
+     [(and (boolean? num1) (boolean? num2)) (eqv? num1 num2)]
+     [(and (list? num1) (list? num2)) (equal? num2 num1)]
+     [else #f] 
+     )))
 (evaluate "test0.txt")
