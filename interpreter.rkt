@@ -35,11 +35,34 @@
 	(else (error "Cannot cast exp-val to list"))
 ))
 
+(define (value->expval val)
+(cond
+	[(number? val) (num-val val)]
+	[(boolean? val) (bool-val val)]
+	[(list? val) (list-val val)]
+	[(string? val) (string-val val)]
+	[(null? val) (null-val)]
+	[else (error "Cannot cast to exp-val")]
+)
+)
+
+(define (expval->value myexp)
+(cases expval myexp
+	(num-val (num) num)
+	(bool-val (bool) bool)
+	(string-val (str) str)
+	(list-val (ls) ls)
+	(null-val () null)
+	(command-val (exp env has-returned) (expval->value exp))
+)
+)
+
 (define (command-val->expval cmdval)
 (cases expval cmdval
 	(command-val (exp env has-returned) exp)
 	(else (error "Cannot cast command-val to expval"))
 ))
+
 (define-datatype environment environment?
 	(empty-env)
 	(extend-env
@@ -136,22 +159,90 @@
 )
 )
 
+(define (negate value)
+(cond
+	[(number? value) (- value)]
+	[(boolean? value) (not value)]
+	[(list? value) (if (null? value) value (cons (negate (car value)) (negate (cdr value))))]
+	[else (error "Invalid negate operation2")]
+)
+)
+
+(define (negate-expval myexpval)
+(cases expval myexpval
+	(num-val (num) (num-val (negate num)))
+	(bool-val (bool) (bool-val (negate bool)))
+	(list-val (ls) (list-val (negate ls)))
+	(else (error "Invalid negate operation1"))
+)
+)
+
 (define (value-of-cexp mycexp env)
 (cases cexp mycexp
+	(minus-c-exp (cexp) (negate-expval (value-of-cexp cexp env)))
+	(p-exp-p (myexp) (value-of-exp myexp))
 	(num-exp (num) (num-val num))
+	(null-exp () (null-val))
 	(var-exp (var) (apply-env env var))
+	(bool-exp (bool) (bool-val bool))
+	(string-exp (str) (string-val str))
+	(list-exp (mylist) (value-of-list mylist env))
+	(var-list-exp (var my-list-member) (value-of-list-member (expval->list (apply-env env var)) my-list-member env))
 	(else (error "Invalid Cexp"))
 )
 )
 
-(define equal-expression?
-   (lambda (num1 num2)
-     (cond
-     [(and (null? num1) (null? num2)) #t]
-     [(and (number? num1) (number? num2)) (equal? num1 num2)]
-     [(and (string? num1) (string? num2)) (equal? num1 num2)]
-     [(and (boolean? num1) (boolean? num2)) (eqv? num1 num2)]
-     [(and (list? num1) (list? num2)) (equal? num2 num1)]
-     [else #f] 
-     )))
+(define (equal-expression? num1 num2)
+	(cond
+	[(and (null? num1) (null? num2)) #t]
+	[(and (number? num1) (number? num2)) (equal? num1 num2)]
+	[(and (string? num1) (string? num2)) (equal? num1 num2)]
+	[(and (boolean? num1) (boolean? num2)) (eqv? num1 num2)]
+	[(and (list? num1) (list? num2)) (equal? num2 num1)]
+	[else #f] 
+	)
+)
+
+(define (value-of-list ls env)
+(cases list-t ls
+	(empty-list () (list-val `()))
+	(nonempty-list (values) (value-of-list-values values env))
+)
+)
+
+(define (value-of-list-values values env)
+(cases list-values values
+	(single-list-value (myexp) (list-val (list (expval->value (value-of-exp myexp env)))))
+	(nested-list-value (myexp other-values) 
+		(list-val (cons (expval->value (value-of-exp myexp env)) (expval->list (value-of-list-values other-values env)))))
+)
+)
+
+(define (get-subscript ls indexp)
+(if (not (list? ls)) (error "Non-array object could not be subscripted")
+(let ([index-number (expval->value indexp)])
+	(if
+		(not (number? index-number)) (error "Index should be a number")
+		(get-list-index ls index-number)
+	)
+)
+)
+)
+
+(define (value-of-list-member var mymember env)
+(cases list-member mymember
+	(single-list-member (myexp) (value->expval (get-subscript var (value-of-exp myexp env))))
+	(nested-list-member (myexp other-members) (value-of-list-member (get-subscript var (value-of-exp myexp env)) other-members env))
+)
+)
+
+(define (get-list-index ls ind)
+(cond
+	[(null? ls) (error "Index is out of range")]
+	[(< ind 0) (error "Subscription index should not be negative.")]
+	[(= ind 0) (car ls)]
+	[else (get-list-index (cdr ls) (- ind 1))]
+)
+)
+
 (evaluate "test0.txt")
